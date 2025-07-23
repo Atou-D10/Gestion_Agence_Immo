@@ -17,14 +17,14 @@ public function register(Request $request)
         'name' => 'required|string',
         'email' => 'required|email|unique:users',
         'password' => 'required|string|confirmed|min:6',
-        'role' => 'nullable|string'
+        'role' => 'required|string'
     ]);
 
     $user = User::create([
         'name' => $validated['name'],
         'email' => $validated['email'],
         'password' => Hash::make($validated['password']),
-        'role' => $validated['role'] ?? 'client',
+        'role' => $validated['role'] ,
     ]);
 
     return response()->json([
@@ -35,27 +35,23 @@ public function register(Request $request)
 
 
     // ✅ Connexion
-    public function login(Request $request)
-    {
-        $credentials = $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
-        ]);
+        public function login(Request $request)
+        {
+            $credentials = $request->only('email', 'password');
 
-        if (!Auth::attempt($credentials)) {
-            throw ValidationException::withMessages([
-                'email' => ['Les identifiants sont incorrects.'],
+            if (!Auth::attempt($credentials)) {
+                return response()->json(['message' => 'Email ou mot de passe incorrect.'], 401);
+            }
+
+            $user = Auth::user();
+            $token = $user->createToken('token')->plainTextToken;
+
+            return response()->json([
+                'user' => $user,
+                'token' => $token,
             ]);
         }
 
-        $user = Auth::user();
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        return response()->json([
-            'user' => $user,
-            'token' => $token,
-        ]);
-    }
 
     // ✅ Déconnexion
 public function logout(Request $request)
